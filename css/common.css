@@ -97,6 +97,90 @@ ul, ol { list-style: none; }
 
 .header-action-btn svg { width: 16px; height: 16px; }
 
+/* ── ヘッダーユーザー情報（名前＋役職バッジ）── */
+.header-user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  margin-right: var(--space-2);
+}
+.header-user-name {
+  font-size: var(--text-sm);
+  color: var(--white);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.header-user-roles {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+/* ヘッダー内バッジは少し小さく */
+.header-user-roles .badge {
+  font-size: 10px;
+  padding: 1px 6px;
+}
+
+/* ── ログアウトボタンのテキスト（スマホで非表示）── */
+@media (max-width: 480px) {
+  .logout-label { display: none; }
+  .header-user-name { font-size: var(--text-xs); max-width: 80px; overflow: hidden; text-overflow: ellipsis; }
+}
+
+/* ── 役職チェックボックスUI ── */
+.role-checkbox-group {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+.role-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  background: rgba(255,255,255,0.05);
+}
+.role-checkbox-item:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: var(--gold-500);
+}
+.role-checkbox-item input[type="checkbox"] {
+  width: 16px; height: 16px;
+  accent-color: var(--gold-500);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.role-checkbox-item label {
+  font-size: var(--text-sm);
+  color: var(--gray-300);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.role-checkbox-item:has(input:checked) {
+  background: rgba(201,168,76,0.15);
+  border-color: var(--gold-500);
+}
+.role-checkbox-item:has(input:checked) label {
+  color: var(--gold-300);
+  font-weight: 500;
+}
+/* ダークでない通常ページ用 */
+.role-checkbox-group.light .role-checkbox-item {
+  border-color: var(--gray-300);
+  background: var(--white);
+}
+.role-checkbox-group.light .role-checkbox-item label { color: var(--gray-700); }
+.role-checkbox-group.light .role-checkbox-item:hover { border-color: var(--navy-500); background: var(--gray-100); }
+.role-checkbox-group.light .role-checkbox-item:has(input:checked) { background: rgba(37,77,122,0.08); border-color: var(--navy-500); }
+.role-checkbox-group.light .role-checkbox-item:has(input:checked) label { color: var(--navy-700); font-weight: 600; }
+@media(max-width:480px){ .role-checkbox-group { grid-template-columns: repeat(2,1fr); } }
+
 /* ── メインレイアウト ── */
 .app-layout {
   display: flex;
