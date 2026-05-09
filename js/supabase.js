@@ -40,11 +40,15 @@ const Auth = {
     if (data?.user) {
       const profile = await DB.profiles.get(data.user.id);
       if (profile) {
+        // roles は text[] 配列。旧形式（role: text）との互換性も維持
+        const roles = Array.isArray(profile.roles) && profile.roles.length > 0
+          ? profile.roles
+          : [profile.role].filter(Boolean);
         sessionStorage.setItem('hs_user', JSON.stringify({
-          id:   profile.id,
-          name: `${profile.last_name}${profile.first_name}`,
-          role: profile.role,
-          part: profile.part,
+          id:    profile.id,
+          name:  `${profile.last_name}${profile.first_name}`,
+          roles: roles,
+          part:  profile.part,
         }));
       }
     }
@@ -127,8 +131,8 @@ const DB = {
 // ── 初期化 ──
 document.addEventListener('DOMContentLoaded', () => {
   initSupabase();
-  _checkSupabaseConnection();
 });
+
 
 // ── 開発者ツール向け接続診断 ──
 async function _checkSupabaseConnection() {
