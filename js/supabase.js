@@ -127,4 +127,68 @@ const DB = {
 // ── 初期化 ──
 document.addEventListener('DOMContentLoaded', () => {
   initSupabase();
+  _checkSupabaseConnection();
 });
+
+// ── 開発者ツール向け接続診断 ──
+async function _checkSupabaseConnection() {
+  const LABEL = '[HighasuiDX]';
+  const t0 = performance.now();
+
+  // 1. SDK 読み込み確認
+  if (typeof window.supabase === 'undefined') {
+    console.error(
+      `%c${LABEL} ✖ Supabase SDK が読み込まれていません`,
+      'color:#e74c3c;font-weight:bold;'
+    );
+    return;
+  }
+
+  // 2. 設定値の簡易チェック
+  const urlOk = SUPABASE_CONFIG.url && SUPABASE_CONFIG.url !== 'https://xxxx.supabase.co';
+  const keyOk = SUPABASE_CONFIG.anonKey && SUPABASE_CONFIG.anonKey.length > 20;
+
+  if (!urlOk || !keyOk) {
+    console.warn(
+      `%c${LABEL} ⚠ SUPABASE_CONFIG が初期値のままです。supabase.js を編集してください。`,
+      'color:#e67e22;font-weight:bold;'
+    );
+    return;
+  }
+
+  // 3. 実際に疎通テスト（getSession は認証不要で軽量）
+  try {
+    const { data, error } = await _sb.auth.getSession();
+    const ms = Math.round(performance.now() - t0);
+
+    if (error) {
+      console.group(`%c${LABEL} ✖ Supabase 接続エラー`, 'color:#e74c3c;font-weight:bold;');
+      console.error('エラー内容:', error.message);
+      console.info ('Project URL:', SUPABASE_CONFIG.url);
+      console.groupEnd();
+      return;
+    }
+
+    // 4. 接続成功
+    const session = data?.session;
+    console.group(`%c${LABEL} ✔ Supabase 接続成功 (${ms} ms)`, 'color:#27ae60;font-weight:bold;');
+    console.info ('Project URL :', SUPABASE_CONFIG.url);
+    console.info ('SDK version :', window.supabase?.createClient?.toString().match(/supabase-js@([\d.]+)/)?.[1] ?? '(不明)');
+    if (session) {
+      console.info('ログイン状態 : ログイン済み');
+      console.info('ユーザーID  :', session.user?.id);
+      console.info('メール       :', session.user?.email);
+    } else {
+      console.info('ログイン状態 : 未ログイン（ゲスト）');
+    }
+    console.groupEnd();
+
+  } catch (err) {
+    const ms = Math.round(performance.now() - t0);
+    console.group(`%c${LABEL} ✖ Supabase 疎通失敗 (${ms} ms)`, 'color:#e74c3c;font-weight:bold;');
+    console.error('例外:', err);
+    console.info ('Project URL:', SUPABASE_CONFIG.url);
+    console.warn ('ネットワーク接続またはCORSの問題の可能性があります。');
+    console.groupEnd();
+  }
+}
