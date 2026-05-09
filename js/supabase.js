@@ -14,7 +14,7 @@
 
 // ── 設定値（本番前にここを変更） ──
 const SUPABASE_CONFIG = {
-  url:     'https://wfsbrtrjsqmivbzobznc.supabase.co/rest/v1/',      
+  url:     'https://wfsbrtrjsqmivbzobznc.supabase.co',      
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indmc2JydHJqc3FtaXZiem9iem5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMDA3ODYsImV4cCI6MjA5Mzc3Njc4Nn0.3c6gYwo5udgcCQu7yL3Q0UC83Z21mFW3LWtizuFy5HI', 
 };
 
