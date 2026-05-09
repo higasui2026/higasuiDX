@@ -313,7 +313,7 @@
       btn.textContent = '登録中…';
 
       // Supabase未接続時はデモ
-      if (!supabase) {
+      if (!_sb) {
         setTimeout(() => {
           alert('登録完了（デモ）。ログインページに移動します。');
           window.location.href = 'login.html';
@@ -322,7 +322,7 @@
       }
 
       const email = document.getElementById('email').value.trim();
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await _sb.auth.signUp({ email, password });
 
       if (error) {
         btn.disabled = false;
@@ -334,7 +334,7 @@
 
       // プロフィール情報をprofilesテーブルに保存
       if (data?.user) {
-        await supabase.from('profiles').insert({
+        const { error: profileError } = await _sb.from('profiles').insert({
           id:                data.user.id,
           last_name:         document.getElementById('last-name').value.trim(),
           first_name:        document.getElementById('first-name').value.trim(),
@@ -349,6 +349,9 @@
           emergency_contact: document.getElementById('emergency-contact').value.trim(),
           joined_date:       document.getElementById('joined-date').value,
         });
+        if (profileError) {
+          console.error('プロフィール保存エラー:', profileError.message);
+        }
       }
 
       alert('登録が完了しました。確認メールをご確認ください。');
