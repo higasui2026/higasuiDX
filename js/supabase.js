@@ -38,7 +38,7 @@ const Auth = {
     if (!_sb) return { error: { message: 'Supabase未接続' } };
     const { data, error } = await _sb.auth.signInWithPassword({ email, password });
     if (data?.user) {
-      const profile = await DB.profiles.get(data.user.id);
+      const { data: profile } = await DB.profiles.get(data.user.id);
       if (profile) {
         // roles は text[] 配列。旧形式（role: text）との互換性も維持
         const roles = Array.isArray(profile.roles) && profile.roles.length > 0
@@ -80,50 +80,59 @@ const Auth = {
 };
 
 // ── DBヘルパー ──
+// 戻り値: { data, error }
+// エラー時はコンソールに詳細を出力し、呼び出し元でフォールバックを判断できる
 const DB = {
   profiles: {
     async get(userId) {
-      if (!_sb) return null;
-      const { data } = await _sb.from('profiles').select('*').eq('id', userId).single();
-      return data;
+      if (!_sb) return { data: null, error: null };
+      const { data, error } = await _sb.from('profiles').select('*').eq('id', userId).single();
+      if (error) console.error('[HighasuiDX] profiles.get エラー:', error.message, error);
+      return { data, error };
     },
     async list() {
-      if (!_sb) return [];
-      const { data } = await _sb.from('profiles').select('*').order('part').order('last_name');
-      return data ?? [];
+      if (!_sb) return { data: [], error: null };
+      const { data, error } = await _sb.from('profiles').select('*').order('part').order('last_name');
+      if (error) console.error('[HighasuiDX] profiles.list エラー:', error.message, error);
+      return { data: data ?? [], error };
     },
   },
   scores: {
     async list() {
-      if (!_sb) return [];
-      const { data } = await _sb.from('scores').select('*').order('title');
-      return data ?? [];
+      if (!_sb) return { data: [], error: null };
+      const { data, error } = await _sb.from('scores').select('*').order('title');
+      if (error) console.error('[HighasuiDX] scores.list エラー:', error.message, error);
+      return { data: data ?? [], error };
     },
     async get(id) {
-      if (!_sb) return null;
-      const { data } = await _sb.from('scores').select('*').eq('id', id).single();
-      return data;
+      if (!_sb) return { data: null, error: null };
+      const { data, error } = await _sb.from('scores').select('*').eq('id', id).single();
+      if (error) console.error('[HighasuiDX] scores.get エラー:', error.message, error);
+      return { data, error };
     },
   },
   ledger: {
     async list(year) {
-      if (!_sb) return [];
+      if (!_sb) return { data: [], error: null };
       let q = _sb.from('ledger_entries').select('*').order('date', { ascending: false });
       if (year) q = q.gte('date', `${year}-01-01`).lte('date', `${year}-12-31`);
-      const { data } = await q;
-      return data ?? [];
+      const { data, error } = await q;
+      if (error) console.error('[HighasuiDX] ledger.list エラー:', error.message, error);
+      return { data: data ?? [], error };
     },
   },
   instruments: {
     async list() {
-      if (!_sb) return [];
-      const { data } = await _sb.from('instruments').select('*').order('instrument_number');
-      return data ?? [];
+      if (!_sb) return { data: [], error: null };
+      const { data, error } = await _sb.from('instruments').select('*').order('instrument_number');
+      if (error) console.error('[HighasuiDX] instruments.list エラー:', error.message, error);
+      return { data: data ?? [], error };
     },
     async findByQR(code) {
-      if (!_sb) return null;
-      const { data } = await _sb.from('instruments').select('*').eq('instrument_number', code).single();
-      return data;
+      if (!_sb) return { data: null, error: null };
+      const { data, error } = await _sb.from('instruments').select('*').eq('instrument_number', code).single();
+      if (error) console.error('[HighasuiDX] instruments.findByQR エラー:', error.message, error);
+      return { data, error };
     },
   },
 };
