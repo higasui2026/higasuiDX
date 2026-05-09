@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>楽譜管理 — 東大阪吹奏楽団</title>
+  <link rel="stylesheet" href="../css/variables.css">
+  <link rel="stylesheet" href="../css/common.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    .toolbar { display:flex; gap:var(--space-3); flex-wrap:wrap; align-items:center; margin-bottom:var(--space-6); }
+    .toolbar input { flex:1; min-width:200px; }
+    .score-table-wrap { border-radius:var(--radius-lg); overflow:hidden; border:1px solid var(--gray-200); }
+    .part-tag {
+      display:inline-flex; align-items:center;
+      padding:2px 8px; border-radius:var(--radius-full);
+      font-size:10px; font-weight:500;
+      background:rgba(26,46,74,0.08); color:var(--navy-700);
+      margin:2px;
+    }
+    /* モーダル内フォーム */
+    .modal .form-group { margin-bottom:var(--space-4); }
+    .file-drop {
+      border:2px dashed var(--gray-300); border-radius:var(--radius-md);
+      padding:var(--space-8); text-align:center; cursor:pointer;
+      transition:border-color var(--transition-fast), background var(--transition-fast);
+    }
+    .file-drop:hover, .file-drop.drag-over {
+      border-color:var(--navy-500); background:rgba(37,77,122,0.04);
+    }
+    .file-drop svg { margin:0 auto var(--space-3); opacity:.4; }
+    .file-list { margin-top:var(--space-3); display:flex; flex-direction:column; gap:var(--space-2); }
+    .file-item {
+      display:flex; align-items:center; gap:var(--space-3);
+      padding:var(--space-2) var(--space-3);
+      background:var(--gray-100); border-radius:var(--radius-md);
+      font-size:var(--text-sm);
+    }
+    .file-item svg { color:var(--danger); flex-shrink:0; }
+    .file-item__name { flex:1; color:var(--navy-800); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .file-item__part { font-size:var(--text-xs); color:var(--gray-500); }
+    .remove-file { color:var(--gray-400); cursor:pointer; }
+    .remove-file:hover { color:var(--danger); }
+    .form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:var(--space-4); }
+    @media(max-width:768px){
+      .toolbar { flex-direction:column; }
+      .toolbar input, .toolbar select { width:100%; max-width:none; }
+      .score-table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+      .score-table-wrap .table { min-width:520px; }
+      .file-drop { padding:var(--space-5); }
+      .form-grid-2 { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+<header class="site-header" id="site-header"></header>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<div class="app-layout">
+  <nav class="sidebar" id="sidebar"></nav>
+  <main class="main-content">
+
+    <!-- ページヘッダー -->
+    <div class="page-header fade-in">
+      <div>
+        <p class="page-header__eyebrow">LIBRARY</p>
+        <h1 class="page-header__title">楽譜管理</h1>
+      </div>
+      <div class="page-header__actions">
+        <button class="btn btn-gold" onclick="openModal('modal-add')">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+          楽譜を登録
+        </button>
+      </div>
+    </div>
+
+    <!-- 検索ツールバー -->
+    <div class="toolbar fade-in fade-in-1">
+      <input type="text" id="search-input" class="form-control" placeholder="曲名・作曲者で検索…">
+      <select id="filter-part" class="form-control" style="max-width:180px;">
+        <option value="">すべてのパート</option>
+        <option value="flute">フルート</option>
+        <option value="oboe">オーボエ</option>
+        <option value="clarinet">クラリネット</option>
+        <option value="bassoon">ファゴット</option>
+        <option value="saxophone">サクソフォーン</option>
+        <option value="horn">ホルン</option>
+        <option value="trumpet">トランペット</option>
+        <option value="trombone">トロンボーン</option>
+        <option value="euphonium">ユーフォニアム</option>
+        <option value="tuba">テューバ</option>
+        <option value="percussion">打楽器</option>
+        <option value="conductor">指揮者譜</option>
+      </select>
+      <select id="filter-dist" class="form-control" style="max-width:160px;">
+        <option value="">配布状況</option>
+        <option value="1">配布中</option>
+        <option value="0">未配布</option>
+      </select>
+    </div>
+
+    <!-- 楽譜テーブル -->
+    <div class="score-table-wrap fade-in fade-in-2">
+      <table class="table" id="scores-table">
+        <thead>
+          <tr>
+            <th>曲名</th>
+            <th>作曲者</th>
+            <th>編曲者</th>
+            <th>パート数</th>
+            <th>配布状況</th>
+            <th>登録日</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="scores-tbody">
+          <tr><td colspan="7" style="text-align:center;padding:var(--space-10);color:var(--gray-500);">
+            <div class="loading-spinner" style="margin:0 auto var(--space-3);"></div>読み込み中…
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── 楽譜登録モーダル ── -->
+<div class="modal-overlay" id="modal-add">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal__header">
+      <h2 class="modal__title">楽譜を登録</h2>
+      <button class="modal__close" onclick="closeModal('modal-add')">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal__body">
+      <div class="form-group">
+        <label class="form-label">曲名 <span class="required">*</span></label>
+        <input type="text" id="add-title" class="form-control" placeholder="例：吹奏楽のための第一組曲">
+      </div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label">作曲者</label>
+          <input type="text" id="add-composer" class="form-control" placeholder="例：グスタフ・ホルスト">
+        </div>
+        <div class="form-group">
+          <label class="form-label">編曲者</label>
+          <input type="text" id="add-arranger" class="form-control" placeholder="例：（原曲のまま）">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">備考</label>
+        <textarea id="add-notes" class="form-control" rows="2" placeholder="自由メモ"></textarea>
+      </div>
+
+      <!-- PDFアップロード -->
+      <div class="form-group">
+        <label class="form-label">パート譜PDF（複数可）</label>
+        <div class="file-drop" id="file-drop" onclick="document.getElementById('file-input').click()">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1" width="40" height="40">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+          </svg>
+          <p style="font-size:var(--text-sm);color:var(--gray-500);">クリックまたはドラッグ＆ドロップでPDFを追加</p>
+          <p style="font-size:var(--text-xs);color:var(--gray-300);margin-top:4px;">ファイル名からパートを自動判定します</p>
+        </div>
+        <input type="file" id="file-input" accept=".pdf" multiple style="display:none">
+        <div class="file-list" id="file-list"></div>
+      </div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-add')">キャンセル</button>
+      <button class="btn btn-gold" id="btn-save-score">保存する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 楽譜詳細モーダル ── -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal__header">
+      <h2 class="modal__title" id="detail-title">—</h2>
+      <button class="modal__close" onclick="closeModal('modal-detail')">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal__body" id="detail-body"></div>
+    <div class="modal__footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-detail')">閉じる</button>
+      <button class="btn btn-danger btn-sm" id="btn-delete-score">削除</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+<script src="../js/supabase.js"></script>
+<script src="../js/common.js"></script>
+<script>
+// ─── パート自動判定テーブル ───
+const PART_DETECT = [
+  ['conductor','指揮者譜',/cond|指揮|score/i],
+  ['flute',   'フルート',  /fl(ute)?[_\-\s]?[12]?|フルート/i],
+  ['oboe',    'オーボエ',  /ob(oe)?|オーボエ/i],
+  ['clarinet','クラリネット',/cl(ar(inet)?)?[_\-\s]?[12]?|クラリネット/i],
+  ['bassoon', 'ファゴット', /bsn|bassoon|fg|ファゴット/i],
+  ['saxophone','サックス',  /sax|a\.sax|t\.sax|サックス|サクソフォ/i],
+  ['horn',    'ホルン',    /hn|horn|hr[_\-\s]?[1-4]?|ホルン/i],
+  ['trumpet', 'トランペット',/tp|tpt|trumpet|トランペット/i],
+  ['trombone','トロンボーン',/tb|tbn|trombone|トロンボーン/i],
+  ['euphonium','ユーフォ',  /euph|バリトン|ユーフォ/i],
+  ['tuba',    'テューバ',  /tuba|チューバ|テューバ/i],
+  ['percussion','打楽器',  /perc|dr|timp|打楽器|パーカッション/i],
+  ['contrabass','コントラバス',/cb|cbass|コントラバス/i],
+];
+
+function detectPart(filename) {
+  const base = filename.replace(/\.pdf$/i,'');
+  for (const [key, label, rx] of PART_DETECT) {
+    if (rx.test(base)) return { key, label };
+  }
+  return { key:'other', label:'その他' };
+}
+
+// ─── デモデータ ───
+const DEMO_SCORES = [
+  { id:'1', title:'吹奏楽のための第一組曲', composer:'G.ホルスト', arranger:'', parts:['conductor','flute','oboe','clarinet','horn','trumpet','trombone','tuba','percussion'], is_distributed:true,  created_at:'2024-04-01', notes:'' },
+  { id:'2', title:'アルメニアン・ダンス Part.1', composer:'A.リード', arranger:'', parts:['conductor','flute','clarinet','saxophone','horn','trumpet','trombone','percussion'], is_distributed:true,  created_at:'2024-04-15', notes:'定演使用' },
+  { id:'3', title:'スター・ウォーズ', composer:'J.ウィリアムズ', arranger:'P.ラヴェンダー', parts:['conductor','flute','clarinet','trumpet','trombone','percussion'], is_distributed:false, created_at:'2024-05-01', notes:'選曲候補' },
+];
+
+const PART_LABEL_MAP = {
+  conductor:'指揮者譜', flute:'フルート', oboe:'オーボエ', clarinet:'クラリネット',
+  bassoon:'ファゴット', saxophone:'サクソフォーン', horn:'ホルン', trumpet:'トランペット',
+  trombone:'トロンボーン', euphonium:'ユーフォニアム', tuba:'テューバ',
+  percussion:'打楽器', contrabass:'コントラバス', other:'その他',
+};
+
+let allScores = [];
+let pendingFiles = []; // { file, part }
+
+// ─── テーブル描画 ───
+function renderTable() {
+  const kw   = document.getElementById('search-input').value.toLowerCase();
+  const part = document.getElementById('filter-part').value;
+  const dist = document.getElementById('filter-dist').value;
+
+  const filtered = allScores.filter(s => {
+    if (kw && !`${s.title}${s.composer}${s.arranger}`.toLowerCase().includes(kw)) return false;
+    if (part && !(s.parts ?? []).includes(part)) return false;
+    if (dist === '1' && !s.is_distributed) return false;
+    if (dist === '0' && s.is_distributed) return false;
+    return true;
+  });
+
+  const tbody = document.getElementById('scores-tbody');
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:var(--space-10);color:var(--gray-500);">該当する楽譜がありません</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(s => `
+    <tr style="cursor:pointer;" onclick="openDetail('${s.id}')">
+      <td style="font-weight:600;color:var(--navy-800);">${s.title}</td>
+      <td>${s.composer || '—'}</td>
+      <td>${s.arranger || '—'}</td>
+      <td>${(s.parts ?? []).length}パート</td>
+      <td>
+        ${s.is_distributed
+          ? '<span class="badge badge-success">配布中</span>'
+          : '<span class="badge badge-navy">未配布</span>'}
+      </td>
+      <td style="color:var(--gray-500);font-size:var(--text-xs);">${s.created_at?.slice(0,10) ?? '—'}</td>
+      <td><button class="btn btn-sm btn-outline" onclick="event.stopPropagation();openDetail('${s.id}')">詳細</button></td>
+    </tr>
+  `).join('');
+}
+
+// ─── 詳細モーダル ───
+function openDetail(id) {
+  const s = allScores.find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('detail-title').textContent = s.title;
+  document.getElementById('detail-body').innerHTML = `
+    <dl style="display:grid;grid-template-columns:120px 1fr;gap:var(--space-3) var(--space-4);font-size:var(--text-sm);">
+      <dt style="color:var(--gray-500);">作曲者</dt><dd style="font-weight:500;">${s.composer || '—'}</dd>
+      <dt style="color:var(--gray-500);">編曲者</dt><dd>${s.arranger || '—'}</dd>
+      <dt style="color:var(--gray-500);">配布状況</dt><dd>${s.is_distributed ? '<span class="badge badge-success">配布中</span>' : '<span class="badge badge-navy">未配布</span>'}</dd>
+      <dt style="color:var(--gray-500);">登録日</dt><dd>${s.created_at?.slice(0,10) ?? '—'}</dd>
+      <dt style="color:var(--gray-500);">備考</dt><dd>${s.notes || '—'}</dd>
+      <dt style="color:var(--gray-500);">パート</dt>
+      <dd>${(s.parts ?? []).map(p => `<span class="part-tag">${PART_LABEL_MAP[p] ?? p}</span>`).join('')}</dd>
+    </dl>
+    <div style="margin-top:var(--space-5);padding-top:var(--space-5);border-top:1px solid var(--gray-200);">
+      <button class="btn btn-primary" onclick="toggleDistribution('${s.id}')">
+        ${s.is_distributed ? '配布を停止する' : '配布を開始する'}
+      </button>
+    </div>
+  `;
+  document.getElementById('btn-delete-score').onclick = () => deleteScore(id);
+  openModal('modal-detail');
+}
+
+function toggleDistribution(id) {
+  const s = allScores.find(x => x.id === id);
+  if (!s) return;
+  s.is_distributed = !s.is_distributed;
+  // Supabase更新
+  if (_sb) _sb.from('scores').update({ is_distributed: s.is_distributed }).eq('id', id);
+  showToast(s.is_distributed ? '配布を開始しました' : '配布を停止しました', s.is_distributed ? 'success' : 'default');
+  closeModal('modal-detail');
+  renderTable();
+}
+
+function deleteScore(id) {
+  if (!confirm('この楽譜を削除しますか？')) return;
+  allScores = allScores.filter(s => s.id !== id);
+  if (_sb) _sb.from('scores').delete().eq('id', id);
+  showToast('削除しました', 'success');
+  closeModal('modal-detail');
+  renderTable();
+}
+
+// ─── ファイルドロップ ───
+function addFiles(files) {
+  for (const file of files) {
+    if (!file.name.endsWith('.pdf')) continue;
+    const { key, label } = detectPart(file.name);
+    pendingFiles.push({ file, partKey: key, partLabel: label });
+  }
+  renderFileList();
+}
+
+function renderFileList() {
+  const list = document.getElementById('file-list');
+  list.innerHTML = pendingFiles.map((f, i) => `
+    <div class="file-item">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" width="18" height="18">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+      </svg>
+      <span class="file-item__name">${f.file.name}</span>
+      <span class="file-item__part">→ <strong>${f.partLabel}</strong></span>
+      <button class="remove-file" onclick="removeFile(${i})" title="削除">✕</button>
+    </div>
+  `).join('');
+}
+
+function removeFile(i) {
+  pendingFiles.splice(i, 1);
+  renderFileList();
+}
+
+// ─── 保存 ───
+document.addEventListener('DOMContentLoaded', async () => {
+  // ファイルドロップ
+  const drop = document.getElementById('file-drop');
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag-over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault(); drop.classList.remove('drag-over');
+    addFiles([...e.dataTransfer.files]);
+  });
+  document.getElementById('file-input').addEventListener('change', e => addFiles([...e.target.files]));
+
+  // 検索イベント
+  ['search-input','filter-part','filter-dist'].forEach(id =>
+    document.getElementById(id).addEventListener(id === 'search-input' ? 'input' : 'change', renderTable)
+  );
+
+  // 保存ボタン
+  document.getElementById('btn-save-score').addEventListener('click', async () => {
+    const title = document.getElementById('add-title').value.trim();
+    if (!title) { showToast('曲名を入力してください', 'error'); return; }
+
+    const parts = [...new Set(pendingFiles.map(f => f.partKey))];
+    const newScore = {
+      id: Date.now().toString(),
+      title,
+      composer: document.getElementById('add-composer').value.trim(),
+      arranger: document.getElementById('add-arranger').value.trim(),
+      notes:    document.getElementById('add-notes').value.trim(),
+      parts,
+      is_distributed: false,
+      created_at: new Date().toISOString(),
+    };
+
+    if (_sb) {
+      // Supabase Storage へのPDFアップロードはここで実装予定
+      const { data, error } = await _sb.from('scores').insert(newScore).select().single();
+      if (error) { showToast('保存に失敗しました', 'error'); return; }
+      newScore.id = data.id;
+    }
+
+    allScores.unshift(newScore);
+    renderTable();
+    closeModal('modal-add');
+    showToast('楽譜を登録しました', 'success');
+
+    // リセット
+    document.getElementById('add-title').value = '';
+    document.getElementById('add-composer').value = '';
+    document.getElementById('add-arranger').value = '';
+    document.getElementById('add-notes').value = '';
+    pendingFiles = [];
+    renderFileList();
+  });
+
+  // データ取得
+  const sbData = await DB.scores.list();
+  allScores = sbData.length ? sbData : DEMO_SCORES;
+  renderTable();
+});
+</script>
+</body>
+</html>
