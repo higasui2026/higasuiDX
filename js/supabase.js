@@ -8,14 +8,14 @@
  *
  * セキュリティ注意事項:
  *   - anon key はフロントエンドから安全に使用可能（Row Level Security で保護）
- *   - service_role key は絶対に公開リポジトリにコミットしない
+ *   - service_role key は絶対にリポジトリにコミットしない
  *   - Supabaseダッシュボードで Row Level Security (RLS) を必ず有効にすること
  */
 
 // ── 設定値（本番前にここを変更） ──
 const SUPABASE_CONFIG = {
-  url:     'https://wfsbrtrjsqmivbzobznc.supabase.co/rest/v1/',      // 例: https://xxxx.supabase.co
-  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indmc2JydHJqc3FtaXZiem9iem5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMDA3ODYsImV4cCI6MjA5Mzc3Njc4Nn0.3c6gYwo5udgcCQu7yL3Q0UC83Z21mFW3LWtizuFy5HI', // 例: eyJhbGciOiJIUzI1Ni...
+  url:     'https://wfsbrtrjsqmivbzobznc.supabase.co/rest/v1/',      
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indmc2JydHJqc3FtaXZiem9iem5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMDA3ODYsImV4cCI6MjA5Mzc3Njc4Nn0.3c6gYwo5udgcCQu7yL3Q0UC83Z21mFW3LWtizuFy5HI', 
 };
 
 // ── Supabaseクライアント ──
