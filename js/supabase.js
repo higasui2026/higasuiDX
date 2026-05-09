@@ -14,8 +14,8 @@
 
 // ── 設定値（本番前にここを変更） ──
 const SUPABASE_CONFIG = {
-  url:     'https://wfsbrtrjsqmivbzobznc.supabase.co',      
-  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indmc2JydHJqc3FtaXZiem9iem5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMDA3ODYsImV4cCI6MjA5Mzc3Njc4Nn0.3c6gYwo5udgcCQu7yL3Q0UC83Z21mFW3LWtizuFy5HI', 
+  url:     'https://wfsbrtrjsqmivbzobznc.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indmc2JydHJqc3FtaXZiem9iem5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMDA3ODYsImV4cCI6MjA5Mzc3Njc4Nn0.3c6gYwo5udgcCQu7yL3Q0UC83Z21mFW3LWtizuFy5HI',
 };
 
 // ── Supabaseクライアント ──
@@ -26,10 +26,6 @@ let _sb = null;
 function initSupabase() {
   if (typeof window.supabase === 'undefined') {
     console.warn('Supabase SDK が読み込まれていません。');
-    return null;
-  }
-  if (SUPABASE_CONFIG.url === 'YOUR_SUPABASE_URL') {
-    console.warn('Supabase設定が未完了です。js/supabase.js を編集してください。');
     return null;
   }
   _sb = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
