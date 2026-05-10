@@ -147,6 +147,19 @@
     }
 
     .error-box.show { display: block; }
+
+    /* ★ 追加: 登録完了通知ボックス */
+    .success-box {
+      background: rgba(39,174,96,0.15);
+      border: 1px solid rgba(39,174,96,0.4);
+      border-radius: var(--radius-md);
+      padding: var(--space-3) var(--space-4);
+      color: #82e0aa;
+      font-size: var(--text-sm);
+      margin-bottom: var(--space-4);
+      display: none;
+    }
+    .success-box.show { display: block; }
   </style>
 </head>
 <body>
@@ -160,6 +173,11 @@
 
   <div class="login-card">
     <h2>ログイン</h2>
+
+    <!-- ★ 追加: 登録完了メッセージ（?registered=1 のとき表示） -->
+    <div class="success-box" id="success-box">
+      登録が完了しました。メールアドレスとパスワードでログインしてください。
+    </div>
 
     <div class="error-box" id="error-box">
       メールアドレスまたはパスワードが正しくありません。
@@ -188,14 +206,21 @@
 <script src="../../js/supabase.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    const btn      = document.getElementById('login-btn');
-    const errorBox = document.getElementById('error-box');
+    const btn        = document.getElementById('login-btn');
+    const errorBox   = document.getElementById('error-box');
+    const successBox = document.getElementById('success-box');
+
+    // ★ 登録完了フラグをURLパラメーターで受け取る
+    if (new URLSearchParams(window.location.search).get('registered') === '1') {
+      successBox.classList.add('show');
+    }
 
     const doLogin = async () => {
       const email    = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
 
       errorBox.classList.remove('show');
+      successBox.classList.remove('show');
 
       if (!email || !password) {
         errorBox.textContent = 'メールアドレスとパスワードを入力してください。';
@@ -206,11 +231,12 @@
       btn.disabled = true;
       btn.textContent = '認証中…';
 
-      // Supabase未設定時はデモ遷移
-      if (typeof supabase === 'undefined' || supabase === null) {
+      // ★ 修正: `typeof supabase === 'undefined'` は CDN のSDKロード失敗を検知するもの。
+      //   Supabaseクライアント（_sb）が初期化済みかどうかは `!_sb` で判定する。
+      if (!_sb) {
         setTimeout(() => {
           sessionStorage.setItem('hs_user', JSON.stringify({
-            id: 'demo', name: 'デモユーザー', role: 'admin', part: '—'
+            id: 'demo', name: 'デモユーザー', roles: ['admin'], part: '—'
           }));
           window.location.href = '../../index.html';
         }, 800);
