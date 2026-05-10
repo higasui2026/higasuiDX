@@ -251,7 +251,7 @@
         return;
       }
 
-      // Supabase Auth でアカウント作成
+      // Supabase Auth でアカウント作成（メール確認なし設定前提）
       const { data, error } = await _sb.auth.signUp({
         email: formData.email,
         password,
@@ -260,7 +260,6 @@
       if (error) {
         btn.disabled = false;
         btn.textContent = '登録する';
-        // よくあるエラーを日本語化
         const MSG = {
           'User already registered': 'このメールアドレスはすでに登録されています。',
           'Password should be at least 6 characters': 'パスワードは6文字以上必要です。',
@@ -270,38 +269,42 @@
         return;
       }
 
-      // profiles テーブルに保存
-      if (data?.user) {
-        const { error: profileError } = await _sb.from('profiles').insert({
-          id:                data.user.id,
-          last_name:         formData.last_name,
-          first_name:        formData.first_name,
-          last_kana:         formData.last_kana,
-          first_kana:        formData.first_kana,
-          roles:             formData.roles,       // text[] 配列で保存
-          part:              formData.part,
-          category:          formData.category,
-          email:             formData.email,
-          phone:             formData.phone,
-          birthday:          formData.birthday,
-          emergency_contact: formData.emergency_contact,
-          joined_date:       formData.joined_date,
-        });
-
-        if (profileError) {
-          // Authは成功したがprofiles保存失敗の場合（権限エラー等）
-          console.error('プロフィール保存エラー:', profileError.message);
-          // Auth側のユーザーを削除してロールバック
-          await _sb.auth.admin?.deleteUser(data.user.id).catch(() => {});
-          btn.disabled = false;
-          btn.textContent = '登録する';
-          errorBox.textContent = 'プロフィール情報の保存に失敗しました。しばらく後に再試行してください。';
-          errorBox.classList.add('show');
-          return;
-        }
+      // メール確認なし設定の場合、signUp直後にセッションが確立され
+      // auth.uid() が有効になるため、RLSを通過して profiles に INSERT できる
+      if (!data?.user) {
+        btn.disabled = false;
+        btn.textContent = '登録する';
+        errorBox.textContent = 'アカウント作成に失敗しました。しばらく後に再試行してください。';
+        errorBox.classList.add('show');
+        return;
       }
 
-      // 登録内容を一時保存して登録完了ページへ
+      const { error: profileError } = await _sb.from('profiles').insert({
+        id:                data.user.id,
+        last_name:         formData.last_name,
+        first_name:        formData.first_name,
+        last_kana:         formData.last_kana,
+        first_kana:        formData.first_kana,
+        roles:             formData.roles,
+        part:              formData.part,
+        category:          formData.category,
+        email:             formData.email,
+        phone:             formData.phone || null,
+        birthday:          formData.birthday || null,
+        emergency_contact: formData.emergency_contact || null,
+        joined_date:       formData.joined_date,
+      });
+
+      if (profileError) {
+        console.error('[HighasuiDX] profiles INSERT エラー:', profileError.message, profileError);
+        btn.disabled = false;
+        btn.textContent = '登録する';
+        errorBox.textContent = 'プロフィール情報の保存に失敗しました。（' + profileError.message + '）';
+        errorBox.classList.add('show');
+        return;
+      }
+
+      // 登録完了
       sessionStorage.setItem('hs_register_data', JSON.stringify(formData));
       window.location.href = 'register-complete.html';
     });
