@@ -234,7 +234,9 @@ function renderHeader(options = {}) {
   `;
 
   document.getElementById('logout-btn').addEventListener('click', () => {
-    if (typeof Auth !== 'undefined' && typeof _sb !== 'undefined' && _sb) {
+    // ★ 修正: typeof _sb !== 'undefined' は常にtrue（let宣言のため）
+    //         _sb が実際に初期化済みかどうかを確認する
+    if (typeof Auth !== 'undefined' && _sb) {
       Auth.signOut();
     } else {
       sessionStorage.removeItem('hs_user');
